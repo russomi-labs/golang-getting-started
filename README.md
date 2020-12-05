@@ -122,9 +122,206 @@ This tutorial's sequence includes six brief topics that each illustrate a differ
 
 ### Create a module
 
+``` BASH
+# Create a greetings directory for your Go module source code.
+# This is where you'll write your module code.
+mkdir greetings
+cd greetings
+
+# Start your module using the go mod init command to create a go.mod file.
+go mod init github.com/russomi-labs/golang-getting-started/greetings
+```
+
+Create a file in which to write your code and call it `greetings.go` .
+
+``` Go
+package greetings
+
+import "fmt"
+
+// Hello returns a greeting for the named person.
+func Hello(name string) string {
+    // Return a greeting that embeds the name in a message.
+    message := fmt.Sprintf("Hi, %v. Welcome!", name)
+    return message
+}
+```
+
+This is the first code for your module.  It returns a greeting to any caller that asks for one.
+
+In this code, you:
+
+- Declare a greetings package to collect related functions.
+- Implement a Hello function to return the greeting.
+- This function takes a name parameter whose type is string, and returns a string.
+- In Go, a function whose name starts with a capital letter can be called by a function not in the same package. This is known in Go as an [exported name](https://tour.golang.org/basics/3).
+- Declare a message variable to hold your greeting.
+- In Go, the := operator is a shortcut for declaring and initializing a variable in one line (Go uses the value on the right to determine the variable's type).
+- Taking the long way, you might have written this as:
+
+``` Go
+var message string
+message = fmt. Sprintf("Hi, %v. Welcome!", name)
+```
+
+- Use the `fmt` package's `Sprintf` function to create a greeting message.
+- The first argument is a format string, and `Sprintf` substitutes the name parameter's value for the `%v` format verb.
+- Inserting the value of the name parameter completes the greeting text.
+- Return the formatted greeting text to the caller.
+
 ### Call your code from another module
 
+Create a hello directory for your Go module source code. This is where you'll write your caller.
+
+``` BASH
+cd ..
+mkdir hello
+cd hello
+
+touch hello.go
+```
+
+``` Go
+package main
+
+import (
+    "fmt"
+
+    "github.com/russomi-labs/golang-getting-started/greetings"
+)
+
+func main() {
+    // Get a greeting message and print it.
+    message := greetings.Hello("Gladys")
+    fmt.Println(message)
+}
+```
+
+Create a new module for this hello package.
+
+``` BASH
+go mod init hello
+```
+
+Edit the hello module to use the unpublished greetings module.
+
+``` Go
+module hello
+
+go 1.14
+
+replace github.com/russomi-labs/golang-getting-started/greetings => ../greetings
+```
+
+Here, the [replace directive](https://golang.org/ref/mod#tmp_15) tells Go to replace the module path (the URL example.com/greetings) with a path you specify. In this case, that's a greetings directory next to the hello directory.
+
+In the hello directory, run go build to make Go locate the module and add it as a dependency to the go.mod file.
+
+``` BASH
+go build
+```
+
+Look at `go.mod` again to see the changes made by `go build` , including the `require` directive Go added.
+
+``` Go
+module hello
+
+go 1.15
+
+replace github.com/russomi-labs/golang-getting-started/greetings => ../greetings
+
+require github.com/russomi-labs/golang-getting-started/greetings v0.0.0-00010101000000-000000000000
+
+```
+
+In the hello directory, run the hello executable (created by go build) to confirm that the code works.
+
+``` BASH
+$ ./hello
+Hi, Gladys. Welcome!
+```
+
 ### Return and handle an error
+
+Handling errors is an essential feature of solid code. In this section, you'll add a bit of code to return an error from the greetings module, then handle it in the caller.
+
+There's no sense sending a greeting back if you don't know who to greet. Return an error to the caller if the name is empty. Copy the following code into greetings.go and save the file.
+
+``` Go
+// Gopackage greetings
+
+import (
+    "errors"
+    "fmt"
+)
+
+// Hello returns a greeting for the named person.
+func Hello(name string) (string, error) {
+    // If no name was given, return an error with a message.
+    if name == "" {
+        return "", errors.New("empty name")
+    }
+
+    // If a name was received, return a value that embeds the name
+    // in a greeting message.
+    message := fmt.Sprintf("Hi, %v. Welcome!", name)
+    return message, nil
+}
+```
+
+- Change the function so that it returns two values: a string and an error.
+- Your caller will check the second value to see if an error occurred. (Any Go function can return [multiple values](https://golang.org/doc/effective_go.html#multiple-returns).)
+- Import the Go standard library errors package so you can use its [errors. New function](https://golang.org/pkg/errors/#example_New).
+- Add an if statement to check for an invalid request and return an error if the request is invalid.
+- The errors. New function returns an error with your message inside.
+- Add nil (meaning no error) as a second value in the successful return.
+- That way, the caller can see that the function succeeded.
+
+``` Go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/russomi-labs/golang-getting-started/greetings"
+)
+
+func main() {
+    // Set properties of the predefined Logger, including
+    // the log entry prefix and a flag to disable printing
+    // the time, source file, and line number.
+    log.SetPrefix("greetings: ")
+    log.SetFlags(0)
+
+    // Request a greeting message.
+    message, err := greetings.Hello("")
+    // If an error was returned, print it to the console and
+    // exit the program.
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // If no error was returned, print the returned message
+    // to the console.
+    fmt.Println(message)
+}
+```
+
+- Configure the [log package](https://golang.org/pkg/log/) to print the command name ("greetings: ") at the start of its log messages, without a time stamp or source file information.
+- Assign both of the Hello return values, including the error, to variables.
+- Change the Hello argument from Gladys's name to an empty string, so you can try out your error-handling code.
+- Look for a non-nil error value. There's no sense continuing in this case.
+- Use the functions in the standard library's log package to output error information.
+- If you get an error, you use the log package's [Fatal function](https://pkg.go.dev/log?tab=doc#Fatal) to print the error and stop the program.
+
+At the command line in the hello directory, run hello.go to confirm that the code works.
+
+``` BASH
+$ go run hello.go
+greetings: empty name
+exit status 1
+```
 
 ### Return a random greeting
 
