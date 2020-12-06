@@ -642,6 +642,36 @@ This topic introduced Go's built-in support for unit testing.
 
 ### Compile and install the application
 
+In the last section, you'll learn a new go command. While the go run command is a useful shortcut for compiling and running a single-file program, it doesn't generate a binary executable you can easily run again. If you want one of those, a good choice is to run the [go install](https://golang.org/cmd/go/#hdr-Compile_and_install_packages_and_dependencies) command, which compiles your code and installs the resulting binary executable where you can run it.
+
+At the command line, change to the directory that contains `hello/hello.go` .
+
+Discover the Go install path, where the go command will install the current package.
+
+``` BASH
+go list -f '{{.Target}}'
+```
+
+Add the Go install directory to your system's shell path.
+
+``` BASH
+export PATH=$PATH:/path/to/your/install/directory
+```
+
+As an alternative, if you already have a directory like $HOME/bin in your shell path and you'd like to install your Go programs there, you can change the install target by setting the GOBIN variable using the [go env](https://golang.org/cmd/go/#hdr-Print_Go_environment_information) command:
+
+``` BASH
+go env -w GOBIN=/path/to/your/bin
+```
+
+Once you've updated the shell path, run the go install command to compile and install the package.
+
+``` BASH
+go install
+```
+
+Run your application by simply typing its name.
+
 ## References
 
 - [How To Install Go and Set Up a Local Programming Environment on macOS](https://www.digitalocean.com/community/tutorials/how-to-install-go-and-set-up-a-local-programming-environment-on-macos)
