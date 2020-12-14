@@ -886,8 +886,10 @@ go: found github.com/google/go-cmp/cmp in github.com/google/go-cmp v0.4.0
 $ hello
 Hello, Go!
   string(
+
 - 	"Hello World",
 + 	"Hello Go",
+
   )
 $ cat go.mod
 module example.com/user/hello
@@ -907,12 +909,65 @@ go clean -modcache
 $
 ```
 
-
 ### Testing
+
+Go has a lightweight test framework composed of the `go test` command and the testing package.
+
+- You write a test by creating a file with a name ending in `_test.go` that contains functions named `TestXXX` with signature `func (t *testing. T)`.
+- The test framework runs each such function; if the function calls a failure function such as t. Error or t. Fail, the test is considered to have failed.
+
+Add a test to the `morestrings` package by creating the file `$HOME/hello/morestrings/reverse_test.go` containing the following Go code.
+
+``` Go
+package morestrings
+
+import "testing"
+
+func TestReverseRunes(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"Hello, world", "dlrow ,olleH"},
+		{"Hello, 世界", "界世 ,olleH"},
+		{"", ""},
+	}
+	for _, c := range cases {
+		got := ReverseRunes(c.in)
+		if got != c.want {
+			t.Errorf("ReverseRunes(%q) == %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+```
+
+- Then run the test with `go test`:
+
+``` Go
+$ go test
+PASS
+ok  	example.com/user/morestrings 0.165s
+$
+```
+
+Run [go help test](https://golang.org/cmd/go/#hdr-Test_packages) and see the [testing package documentation](https://golang.org/pkg/testing/) for more detail.
 
 ### What's next
 
+Subscribe to the [golang-announce](https://groups.google.com/group/golang-announce) mailing list to be notified when a new stable version of Go is released.
+
+See [Effective Go](https://golang.org/doc/effective_go.html) for tips on writing clear, idiomatic Go code.
+
+Take [A Tour of Go](https://tour.golang.org/) to learn the language proper.
+
+Visit the [documentation page](https://golang.org/doc/#articles) for a set of in-depth articles about the Go language and its libraries and tools.
+
 ### Getting Help
+
+For real-time help, ask the helpful gophers in the community-run [gophers Slack server](https://gophers.slack.com/messages/general/) (grab an invite [here](https://invite.slack.golangbridge.org/)).
+
+The official mailing list for discussion of the Go language is [Go Nuts](https://groups.google.com/group/golang-nuts).
+
+Report bugs using the [Go issue tracker](https://golang.org/issue).
 
 ## References
 
