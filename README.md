@@ -1,5 +1,7 @@
 # golang-getting-started
 
+![gopher](https://golang.org/doc/gopher/doc.png)
+
 Getting Started tutorials for Go
 
 ## Tutorial: Get started with Go
