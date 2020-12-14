@@ -743,13 +743,170 @@ $ go install example.com/user/hello
 $
 ```
 
-This command builds the hello command, producing an executable binary. It then installs that binary as $HOME/go/bin/hello (or, under Windows, %USERPROFILE%\go\bin\hello.exe).
+This command builds the hello command, producing an executable binary. It then installs that binary as `$HOME/go/bin/hello` (or, under Windows, `%USERPROFILE%\go\bin\hello.exe` ).
 
+- The install directory is controlled by the `GOPATH` and `GOBIN` [environment variables](https://golang.org/cmd/go/#hdr-Environment_variables).
+- If `GOBIN` is set, binaries are installed to that directory. If `GOPATH` is set, binaries are installed to the bin subdirectory of the first directory in the GOPATH list. Otherwise, binaries are installed to the bin subdirectory of the default GOPATH ($HOME/go or %USERPROFILE%\go).
+- You can use the go env command to portably set the default value for an environment variable for future go commands:
 
+``` BASH
+$ go env -w GOBIN=/somewhere/else/bin
+$
+```
+
+- To unset a variable previously set by go env -w, use go env -u:
+
+``` BASH
+$ go env -u GOBIN
+$
+```
+
+- Commands like go install apply within the context of the module containing the current working directory. If the working directory is not within the example.com/user/hello module, go install may fail.
+- For convenience, go commands accept paths relative to the working directory, and default to the package in the current working directory if no other path is given. So in our working directory, the following commands are all equivalent:
+
+``` BASH
+$ go install example.com/user/hello
+$ go install .
+$ go install
+```
+
+- Next, let's run the program to ensure it works. For added convenience, we'll add the install directory to our PATH to make running binaries easy:
+
+``` BASH
+# Windows users should consult https://github.com/golang/go/wiki/SettingGOPATH
+# for setting %PATH%.
+$ export PATH=$PATH:$(dirname $(go list -f '{{.Target}}' .))
+$ hello
+Hello, world.
+$
+```
+
+- If you're using a source control system, now would be a good time to initialize a repository, add the files, and commit your first change. Again, this step is optional: you do not need to use source control to write Go code.
+
+``` BASH
+$ git init
+Initialized empty Git repository in /home/user/hello/.git/
+$ git add go.mod hello.go
+$ git commit -m "initial commit"
+[master (root-commit) 0b4507d] initial commit
+ 1 file changed, 7 insertion(+)
+ create mode 100644 go.mod hello.go
+$
+```
+
+- The go command locates the repository containing a given module path by requesting a corresponding HTTPS URL and reading metadata embedded in the HTML response (see [go help importpath](https://golang.org/cmd/go/#hdr-Remote_import_paths)).
+- Many hosting services already provide that metadata for repositories containing Go code, so the easiest way to make your module available for others to use is usually to make its module path match the URL for the repository.
 
 #### Importing packages from your module
 
+Let's write a `morestrings` package and use it from the hello program. First, create a directory for the package named `$HOME/hello/morestrings` , and then a file named `reverse.go` in that directory with the following contents:
+
+``` Go
+// Package morestrings implements additional functions to manipulate UTF-8
+// encoded strings, beyond what is provided in the standard "strings" package.
+package morestrings
+
+// ReverseRunes returns its argument string reversed rune-wise left to right.
+func ReverseRunes(s string) string {
+	r := []rune(s)
+	for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
+		r[i], r[j] = r[j], r[i]
+	}
+	return string(r)
+}
+```
+
+- Because our ReverseRunes function begins with an upper-case letter, it is [exported](https://golang.org/ref/spec#Exported_identifiers), and can be used in other packages that import our morestrings package.
+- Let's test that the package compiles with go build:
+
+``` BASH
+$ cd $HOME/hello/morestrings
+$ go build
+$
+```
+
+- This won't produce an output file. Instead it saves the compiled package in the local build cache.
+- After confirming that the morestrings package builds, let's use it from the hello program. To do so, modify your original $HOME/hello/hello.go to use the morestrings package:
+
+``` Go
+
+package main
+
+import (
+	"fmt"
+
+	"example.com/user/hello/morestrings"
+)
+
+func main() {
+	fmt.Println(morestrings.ReverseRunes("!oG ,olleH"))
+}
+```
+
+- Install the hello program:
+
+``` BASH
+$ go install example.com/user/hello
+```
+
+- Running the new version of the program, you should see a new, reversed message:
+
+``` BASH
+$ hello
+Hello, Go!
+```
+
 #### Importing packages from remote modules
+
+An import path can describe how to obtain the package source code using a revision control system such as Git or Mercurial. The go tool uses this property to automatically fetch packages from remote repositories. For instance, to use github.com/google/go-cmp/cmp in your program:
+
+``` Go
+package main
+
+import (
+	"fmt"
+
+	"example.com/user/hello/morestrings"
+	"github.com/google/go-cmp/cmp"
+)
+
+func main() {
+	fmt.Println(morestrings.ReverseRunes("!oG ,olleH"))
+	fmt.Println(cmp.Diff("Hello World", "Hello Go"))
+}
+```
+
+- When you run commands like go install, go build, or go run, the go command will automatically download the remote module and record its version in your `go.mod` file:
+
+``` Go
+$ go install example.com/user/hello
+go: finding module for package github.com/google/go-cmp/cmp
+go: downloading github.com/google/go-cmp v0.4.0
+go: found github.com/google/go-cmp/cmp in github.com/google/go-cmp v0.4.0
+$ hello
+Hello, Go!
+  string(
+- 	"Hello World",
++ 	"Hello Go",
+  )
+$ cat go.mod
+module example.com/user/hello
+
+go 1.14
+
+require github.com/google/go-cmp v0.4.0
+$
+```
+
+- Module dependencies are automatically downloaded to the pkg/mod subdirectory of the directory indicated by the GOPATH environment variable.
+- The downloaded contents for a given version of a module are shared among all other modules that require that version, so the go command marks those files and directories as read-only.
+- To remove all downloaded modules, you can pass the -modcache flag to go clean:
+
+``` BASH
+go clean -modcache
+$
+```
+
 
 ### Testing
 
